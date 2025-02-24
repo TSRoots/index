@@ -37,7 +37,7 @@
         const brokerUrl = 'wss://c3ac8cbfb7394d0bb21ec36045375171.s1.eu.hivemq.cloud:8884';
         const mqttUser = 'STRoots';
         const mqttPassword = 'asdSTR123';
-        const clientId = 'ESP8266Client_' + Math.floor(Math.random() * 10000); // Client ID único
+        const clientId = 'ESP8266Client_'; // Client ID único
 
         // Conectando ao broker MQTT via WebSocket
         const client = mqtt.connect(brokerUrl, {
