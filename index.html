@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Relé via MQTT</title>
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <h1>Controle de Relé via MQTT</h1>
+    <button id="ligar">Ligar Relé</button>
+    <button id="desligar">Desligar Relé</button>
+
+    <script>
+        // Configuração da conexão MQTT
+        const client = mqtt.connect('wss://c3ac8cbfb7394d0bb21ec36045375171.s1.eu.hivemq.cloud:8883', {
+            username: 'STRoots',
+            password: 'asdSTR123',
+        });
+
+        client.on('connect', function () {
+            console.log('Conectado ao HiveMQ');
+        });
+
+        // Função para publicar mensagens
+        function publicarMensagem(mensagem) {
+            client.publish('controle/rele', mensagem);
+            console.log('Mensagem enviada:', mensagem);
+        }
+
+        // Ações dos botões
+        document.getElementById('ligar').addEventListener('click', () => {
+            publicarMensagem('ON');
+        });
+
+        document.getElementById('desligar').addEventListener('click', () => {
+            publicarMensagem('OFF');
+        });
+    </script>
+</body>
+</html>
