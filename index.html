@@ -3,38 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Relé via MQTT</title>
-    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+    <title>Controle MQTT via Web</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .status {
+            font-size: 18px;
+            margin: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Controle de Relé via MQTT</h1>
-    <button id="ligar">Ligar Relé</button>
-    <button id="desligar">Desligar Relé</button>
+    <h1>Controle de LEDs via MQTT</h1>
+    <button id="btnOn">Ligar LED</button>
+    <button id="btnOff">Desligar LED</button>
+
+    <div class="status">
+        Status do LED: <span id="ledStatus">Desligado</span>
+    </div>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
     <script>
-        // Configuração da conexão MQTT
-        const client = mqtt.connect('wss://c3ac8cbfb7394d0bb21ec36045375171.s1.eu.hivemq.cloud:8883', {
-            username: 'STRoots',
-            password: 'asdSTR123',
+        // Configurações do broker MQTT
+        const brokerUrl = 'wss://c3ac8cbfb7394d0bb21ec36045375171.s1.eu.hivemq.cloud:8884';
+        const mqttUser = 'STRoots';
+        const mqttPassword = 'asdSTR123';
+        const clientId = 'ESP8266Client_' + Math.floor(Math.random() * 10000); // Client ID único
+
+        // Conectando ao broker MQTT via WebSocket
+        const client = mqtt.connect(brokerUrl, {
+            clientId: clientId,
+            username: mqttUser,
+            password: mqttPassword
         });
 
+        // Função para conectar ao MQTT
         client.on('connect', function () {
-            console.log('Conectado ao HiveMQ');
+            console.log('Conectado ao MQTT!');
+            // Inscreve-se no tópico controle/rele
+            client.subscribe('controle/rele', function (err) {
+                if (err) {
+                    console.log('Erro ao inscrever no tópico:', err);
+                } else {
+                    console.log('Inscrito no tópico: controle/rele');
+                }
+            });
         });
 
-        // Função para publicar mensagens
-        function publicarMensagem(mensagem) {
-            client.publish('controle/rele', mensagem);
-            console.log('Mensagem enviada:', mensagem);
-        }
-
-        // Ações dos botões
-        document.getElementById('ligar').addEventListener('click', () => {
-            publicarMensagem('ON');
+        // Recebendo as mensagens do MQTT
+        client.on('message', function (topic, message) {
+            if (topic === 'controle/rele') {
+                const msg = message.toString();
+                console.log('Mensagem recebida:', msg);
+                const ledStatus = document.getElementById('ledStatus');
+                if (msg === 'ON') {
+                    ledStatus.textContent = 'Ligado';
+                } else if (msg === 'OFF') {
+                    ledStatus.textContent = 'Desligado';
+                }
+            }
         });
 
-        document.getElementById('desligar').addEventListener('click', () => {
-            publicarMensagem('OFF');
+        // Enviar mensagem MQTT para ligar o LED
+        document.getElementById('btnOn').addEventListener('click', function () {
+            client.publish('controle/rele', 'ON');
+        });
+
+        // Enviar mensagem MQTT para desligar o LED
+        document.getElementById('btnOff').addEventListener('click', function () {
+            client.publish('controle/rele', 'OFF');
         });
     </script>
 </body>
