@@ -10,18 +10,27 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            margin: 20px;
+        }
+        #chart-container {
+            width: 90%;
+            max-width: 600px;
+            height: 300px;
+            margin: auto;
         }
         canvas {
-            max-width: 90%;
-            height: auto;
+            width: 100% !important;
+            height: 100% !important;
         }
     </style>
 </head>
 <body>
 
     <h1>Monitoramento de Temperatura</h1>
-    
-    <canvas id="temperatureChart"></canvas>
+
+    <div id="chart-container">
+        <canvas id="temperatureChart"></canvas>
+    </div>
 
     <script>
         // Configuração MQTT
