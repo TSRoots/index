@@ -3,103 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle MQTT + Gráfico de Temperatura</title>
+    <title>Monitoramento MQTT</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
-        .status { font-size: 18px; margin: 20px; }
-        canvas { max-width: 600px; margin: auto; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            max-width: 90%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
-    <h1>Controle de LEDs + Gráfico de Temperatura</h1>
+
+    <h1>Monitoramento de Temperatura</h1>
     
-    <button id="btnOn">Ligar LED</button>
-    <button id="btnOff">Desligar LED</button>
-
-    <div class="status">
-        Status do LED: <span id="ledStatus">Desconhecido</span>
-    </div>
-
-    <h2>Temperatura Atual: <span id="tempValue">--</span>°C</h2>
-    <canvas id="tempChart"></canvas>
+    <canvas id="temperatureChart"></canvas>
 
     <script>
+        // Configuração MQTT
         const brokerUrl = 'wss://c3ac8cbfb7394d0bb21ec36045375171.s1.eu.hivemq.cloud:8884/mqtt';
         const mqttUser = 'STRoots';
         const mqttPassword = 'asdSTR123';
-        const clientId = 'webClient_' + Math.random().toString(16).substr(2, 8);
+        const clientId = 'WebClient_' + Math.random().toString(16).substr(2, 8);
 
         const client = mqtt.connect(brokerUrl, {
             clientId: clientId,
             username: mqttUser,
-            password: mqttPassword,
-            protocol: 'wss',
-            rejectUnauthorized: false
+            password: mqttPassword
         });
 
         client.on('connect', function () {
-            console.log('✅ Conectado ao MQTT!');
-            client.subscribe('controle/rele');
+            console.log('Conectado ao MQTT!');
             client.subscribe('controle/temperatura');
         });
 
-        client.on('message', function (topic, message) {
-            const msg = message.toString();
-            console.log('📩 Mensagem recebida:', topic, msg);
+        // Configuração do gráfico
+        const ctx = document.getElementById('temperatureChart').getContext('2d');
+        const temperatureData = {
+            labels: [],
+            datasets: [{
+                label: 'Temperatura (°C)',
+                borderColor: 'red',
+                borderWidth: 2,
+                fill: false,
+                data: []
+            }]
+        };
 
-            if (topic === 'controle/rele') {
-                document.getElementById('ledStatus').textContent = msg === 'ON' ? 'Ligado' : 'Desligado';
-            }
-
-            if (topic === 'controle/temperatura') {
-                document.getElementById('tempValue').textContent = msg;
-                updateChart(parseFloat(msg));
-            }
-        });
-
-        document.getElementById('btnOn').addEventListener('click', function () {
-            client.publish('controle/rele', 'ON');
-        });
-
-        document.getElementById('btnOff').addEventListener('click', function () {
-            client.publish('controle/rele', 'OFF');
-        });
-
-        // Configuração do Gráfico
-        const ctx = document.getElementById('tempChart').getContext('2d');
-        const tempChart = new Chart(ctx, {
+        const temperatureChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Temperatura (°C)',
-                    borderColor: 'red',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    data: []
-                }]
-            },
+            data: temperatureData,
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
-                    x: { title: { display: true, text: 'Tempo' } },
-                    y: { title: { display: true, text: 'Temperatura (°C)' }, min: 20, max: 40 }
+                    x: { title: { display: true, text: 'Leituras' } },
+                    y: { title: { display: true, text: 'Temperatura (°C)' } }
                 }
             }
         });
 
-        function updateChart(temp) {
-            const now = new Date().toLocaleTimeString();
-            if (tempChart.data.labels.length > 20) {
-                tempChart.data.labels.shift();
-                tempChart.data.datasets[0].data.shift();
+        // Receber dados do MQTT
+        client.on('message', function (topic, message) {
+            if (topic === 'controle/temperatura') {
+                const temperatura = parseFloat(message.toString());
+                console.log('Temperatura recebida:', temperatura);
+
+                if (!isNaN(temperatura)) {
+                    // Adicionar nova leitura e remover a mais antiga (mantendo 100 leituras)
+                    if (temperatureData.labels.length >= 100) {
+                        temperatureData.labels.shift();
+                        temperatureData.datasets[0].data.shift();
+                    }
+                    
+                    temperatureData.labels.push(temperatureData.labels.length + 1);
+                    temperatureData.datasets[0].data.push(temperatura);
+
+                    temperatureChart.update();
+                }
             }
-            tempChart.data.labels.push(now);
-            tempChart.data.datasets[0].data.push(temp);
-            tempChart.update();
-        }
+        });
     </script>
 </body>
 </html>
